@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	
 )
 
-Exercise 2 ( Logical Operator )
 
 func main(){
 	var a,b int;
