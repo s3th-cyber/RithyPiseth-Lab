@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -11,64 +10,49 @@ import (
 )
 
 func main() {
-	targetHash := "485f5c36c6f8474f53a3b0e361369ee3e32ee0de2f368b87b847dd23cb284b316bb0f026ada27df76c31ae8fa8696708d14b4d8fa352dbd8a31991b90ca5dd38"
-	wordlistPath := "nord_vpn.txt"
-	outputFilePath := "verbose_lab3.txt"
+	// target SHA512 hash to crack from lab 3
+	target := "485f5c36c6f8474f53a3b0e361369ee3e32ee0de2f368b87b847dd23cb284b316bb0f026ada27df76c31ae8fa8696708d14b4d8fa352dbd8a31991b90ca5dd38"
 
-	// Create or truncate verbose output file
-	outFile, err := os.Create(outputFilePath)
+	// open the wordlist file
+	file, err := os.Open("nord_vpn.txt")
 	if err != nil {
-		fmt.Printf("Error creating verbose file: %v\n", err)
-		return
-	}
-	defer outFile.Close()
-
-	// Write to both console and file
-	multiWriter := io.MultiWriter(os.Stdout, outFile)
-
-	fmt.Fprintln(multiWriter, "==================================================")
-	fmt.Fprintln(multiWriter, "         Lab #3: SHA-512 Password Cracker         ")
-	fmt.Fprintln(multiWriter, "==================================================")
-	fmt.Fprintf(multiWriter, "Target SHA-512 Hash : %s\n", targetHash)
-	fmt.Fprintf(multiWriter, "Wordlist File       : %s\n\n", wordlistPath)
-
-	// Open the wordlist file
-	file, err := os.Open(wordlistPath)
-	if err != nil {
-		fmt.Fprintf(multiWriter, "Error opening wordlist: %v\n", err)
+		fmt.Println("Error: cannot open wordlist file!")
 		return
 	}
 	defer file.Close()
 
+	// output file for verbose
+	outFile, err := os.Create("verbose_lab3.txt")
+	if err != nil {
+		fmt.Println("Error creating output file!")
+		return
+	}
+	defer outFile.Close()
+
 	scanner := bufio.NewScanner(file)
-	attempt := 0
-	found := false
+	count := 0
 
+	fmt.Println("Starting to crack SHA512 hash...")
+
+	// loop through each password in wordlist
 	for scanner.Scan() {
-		attempt++
-		password := strings.TrimRight(scanner.Text(), "\r\n")
-		computedHash := crack.SHA512(password)
+		count++
+		password := strings.TrimSpace(scanner.Text())
 
-		if computedHash == targetHash {
-			fmt.Fprintf(multiWriter, "[FOUND] Attempt #%d | Password: %s | Hash: %s\n", attempt, password, computedHash)
-			fmt.Fprintln(multiWriter, "==================================================")
-			fmt.Fprintf(multiWriter, "SUCCESS! Password found: '%s' on attempt %d\n", password, attempt)
-			fmt.Fprintln(multiWriter, "==================================================")
-			found = true
+		// hash with sha512 helper
+		hash := crack.SHA512(password)
+
+		// write verbose to terminal and file
+		log := fmt.Sprintf("[%d] Testing: %s => %s\n", count, password, hash)
+		fmt.Print(log)
+		outFile.WriteString(log)
+
+		// check match
+		if hash == target {
+			result := fmt.Sprintf("\nPassword Found!\nPassword: %s\nAttempts: %d\n", password, count)
+			fmt.Print(result)
+			outFile.WriteString(result)
 			break
-		} else {
-			fmt.Fprintf(multiWriter, "[TRY]   Attempt #%d | Password: %-20s | Hash: %s\n", attempt, password, computedHash)
 		}
 	}
-
-	if !found {
-		fmt.Fprintln(multiWriter, "\n[-] Password not found in the wordlist.")
-	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintf(multiWriter, "Error reading wordlist: %v\n", err)
-	}
-
-	fmt.Printf("\n[+] Verbose output saved to: %s\n", outputFilePath)
 }
-

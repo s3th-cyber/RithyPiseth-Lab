@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -11,64 +10,50 @@ import (
 )
 
 func main() {
-	targetHash := "6a85dfd77d9cb35770c9dc6728d73d3f"
-	wordlistPath := "nord_vpn.txt"
-	outputFilePath := "verbose_lab1.txt"
+	// hash that we want to crack 
+	target := "6a85dfd77d9cb35770c9dc6728d73d3f"
 
-	// Create or truncate verbose output file
-	outFile, err := os.Create(outputFilePath)
+	// open the wordlist file
+	file, err := os.Open("nord_vpn.txt")
 	if err != nil {
-		fmt.Printf("Error creating verbose file: %v\n", err)
-		return
-	}
-	defer outFile.Close()
-
-	// Write to both console and file
-	multiWriter := io.MultiWriter(os.Stdout, outFile)
-
-	fmt.Fprintln(multiWriter, "==================================================")
-	fmt.Fprintln(multiWriter, "          Lab #1: MD5 Password Cracker            ")
-	fmt.Fprintln(multiWriter, "==================================================")
-	fmt.Fprintf(multiWriter, "Target MD5 Hash : %s\n", targetHash)
-	fmt.Fprintf(multiWriter, "Wordlist File   : %s\n\n", wordlistPath)
-
-	// Open the wordlist file
-	file, err := os.Open(wordlistPath)
-	if err != nil {
-		fmt.Fprintf(multiWriter, "Error opening wordlist: %v\n", err)
+		fmt.Println("Error: cannot open wordlist file!")
 		return
 	}
 	defer file.Close()
 
+	// create file to save output (verbose.txt)
+	outFile, err := os.Create("verbose_lab1.txt")
+	if err != nil {
+		fmt.Println("Error creating output file!")
+		return
+	}
+	defer outFile.Close()
+
 	scanner := bufio.NewScanner(file)
-	attempt := 0
-	found := false
+	count := 0
 
+	fmt.Println("Starting to crack MD5 hash...")
+
+	// loop every password in wordlist
 	for scanner.Scan() {
-		attempt++
-		password := strings.TrimRight(scanner.Text(), "\r\n")
-		computedHash := crack.MD5(password)
+		count++
+		// remove newline and spaces
+		password := strings.TrimSpace(scanner.Text())
 
-		if computedHash == targetHash {
-			fmt.Fprintf(multiWriter, "[FOUND] Attempt #%d | Password: %s | Hash: %s\n", attempt, password, computedHash)
-			fmt.Fprintln(multiWriter, "==================================================")
-			fmt.Fprintf(multiWriter, "SUCCESS! Password found: '%s' on attempt %d\n", password, attempt)
-			fmt.Fprintln(multiWriter, "==================================================")
-			found = true
+		// compute hash using helper in utils/crack/md5.go
+		hash := crack.MD5(password)
+
+		// print attempt and write to file
+		log := fmt.Sprintf("[%d] Testing: %s => %s\n", count, password, hash)
+		fmt.Print(log)
+		outFile.WriteString(log)
+
+		// check if match with target hash
+		if hash == target {
+			result := fmt.Sprintf("\nPassword Found!\nPassword: %s\nAttempts: %d\n", password, count)
+			fmt.Print(result)
+			outFile.WriteString(result)
 			break
-		} else {
-			fmt.Fprintf(multiWriter, "[TRY]   Attempt #%d | Password: %-20s | Hash: %s\n", attempt, password, computedHash)
 		}
 	}
-
-	if !found {
-		fmt.Fprintln(multiWriter, "\n[-] Password not found in the wordlist.")
-	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintf(multiWriter, "Error reading wordlist: %v\n", err)
-	}
-
-	fmt.Printf("\n[+] Verbose output saved to: %s\n", outputFilePath)
 }
-

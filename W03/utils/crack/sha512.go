@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 )
 
-// SHA512 computes the SHA512 hash of a plain text string and returns the hex encoded string.
+// helper function to hash string with sha512
 func SHA512(text string) string {
-	hash := sha512.Sum512([]byte(text))
-	return hex.EncodeToString(hash[:])
+	b := []byte(text)
+	h := sha512.Sum512(b)
+	return hex.EncodeToString(h[:])
 }
-

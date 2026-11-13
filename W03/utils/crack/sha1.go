@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 )
 
-// SHA1 computes the SHA1 hash of a plain text string and returns the hex encoded string.
+// helper function to hash string with sha1
 func SHA1(text string) string {
-	hash := sha1.Sum([]byte(text))
-	return hex.EncodeToString(hash[:])
+	b := []byte(text)
+	h := sha1.Sum(b)
+	return hex.EncodeToString(h[:])
 }
-
